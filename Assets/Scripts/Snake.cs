@@ -12,25 +12,20 @@ public class Snake : MonoBehaviour
     public int startLength = 3;
     public Vector3 direction = Vector3.up;
     public float speed = 1f;
+    public int Length { get { return segments.Count; } }
+    public GameObject youLose;
+    bool alive = true;
+
+    public bool IsAlive
+    {
+        get { return alive; }
+    }
 
 
     // Start is called before the first frame update
     void Start()
     {
-        //GameObject obj = GameObject.Instantiate(headPrefab);
-        //GameObject obj2 = GameObject.Instantiate(bodyPrefab);
-
-        GameObject head = GameObject.Instantiate(headPrefab);
-        head.transform.parent = transform;
-        segments.AddLast(head);
-
-        // i = iterator or index
-        for(int i = 1; i < startLength; ++i)
-        {
-            Grow();
-        }
-
-        InvokeRepeating("Move", 0f, 1f/speed);
+        ResetSnake();
     }
 
     // Update is called once per frame
@@ -44,14 +39,24 @@ public class Snake : MonoBehaviour
     {
         GameObject obj = GameObject.Instantiate(bodyPrefab);
         GameObject tailSegment = segments.Last.Value;
-        obj.transform.position = tailSegment.transform.position - tailSegment.transform.forward;
+
+        obj.transform.position = tailSegment.transform.position - tailSegment.transform.up;
         obj.GetComponent<SpriteRenderer>().sortingOrder = -segments.Count();
+
+        Vector3 segDirection = (tailSegment.transform.position - obj.transform.position).normalized;
+        obj.transform.rotation = GetDirectionRotation(segDirection);
         obj.transform.parent = transform;
+
         segments.AddLast(obj);
     }
 
     void Move()
     {
+        if(!alive)
+        {
+            return; //return: exits the function
+        }
+
         // Move the body
         Vector3 prevPos = Vector3.zero;
         GameObject[] reversed = segments.Reverse().ToArray();
@@ -59,6 +64,9 @@ public class Snake : MonoBehaviour
         {
             GameObject current = reversed[i];
             GameObject next = reversed[i + 1];
+
+            Vector3 segDirection = next.transform.position - current.transform.position;
+            current.transform.rotation = GetDirectionRotation(segDirection);
 
             prevPos = current.transform.position;
             current.transform.position = next.transform.position;
@@ -96,4 +104,40 @@ public class Snake : MonoBehaviour
             direction = nextDir;
         }
     }
+
+    public void Lose()
+    {
+        youLose.SetActive(true);
+        alive = false;
+    }
+
+    public void ResetSnake()
+    {
+        CancelInvoke();
+        foreach(GameObject segment in segments)
+        {
+            GameObject.Destroy(segment);
+        }
+
+        segments.Clear();
+
+        direction = Vector3.up;
+
+        //GameObject obj = GameObject.Instantiate(headPrefab);
+        //GameObject obj2 = GameObject.Instantiate(bodyPrefab);
+
+        GameObject head = GameObject.Instantiate(headPrefab);
+        head.transform.parent = transform;
+        segments.AddLast(head);
+
+        // i = iterator or index
+        for (int i = 1; i < startLength; ++i)
+        {
+            Grow();
+        }
+
+        InvokeRepeating("Move", 0f, 1f / speed);
+        alive = true;
+    }
+    
 }
